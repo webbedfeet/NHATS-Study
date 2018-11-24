@@ -1,0 +1,211 @@
+
+# coding: utf-8
+
+# In[79]:
+
+
+import pandas as pd 
+import seaborn as sns 
+import sas7bdat as sas7bdat
+import numpy as np
+import scipy as sp
+
+
+# In[48]:
+
+
+df1 = pd.read_csv('Round1.csv')
+df2 = pd.read_csv('Round2.csv')
+df3 = pd.read_csv('Round3.csv')
+df4 = pd.read_csv('Round4.csv')
+df5 = pd.read_csv('Round5.csv')
+df6 = pd.read_csv('Round6.csv')
+df7 = pd.read_csv('Round7.csv')
+
+
+# In[49]:
+
+
+mergedset1 = pd.merge(df1, df2, on='spid',how='left')
+mergedset2 = pd.merge(mergedset1,df3,on='spid',how='left')
+mergedset3 = pd.merge(mergedset2,df4,on='spid',how='left')
+mergedset4 = pd.merge(mergedset3,df5,on='spid',how='left')
+mergedset5 = pd.merge(mergedset4,df6,on='spid',how='left')
+mergedset_final = pd.merge(mergedset5,df7,on='spid',how='left')
+
+
+# In[50]:
+
+
+total_patients_arthritis = mergedset_final[mergedset_final.hc1disescn4 == '1 YES']
+
+
+# In[51]:
+
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia1toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia1toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia1toincim1 != '.']
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia3toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia3toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia3toincim1 != '.']
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia5toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia5toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia5toincim1 != '.']
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia7toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia7toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia7toincim1 != '.']
+
+
+# In[65]:
+
+
+total_patients_arthritis['THR'] = np.where(total_patients_arthritis['hc1hipsurg'] == '1 YES', 1, 0)
+total_patients_arthritis['TKR'] = np.where(total_patients_arthritis['hc1kneesurg'] == '1 YES', 1, 0) 
+total_patients_arthritis['TJR'] = np.where(total_patients_arthritis['THR']+total_patients_arthritis['TKR'] >= 1, 'Yes', 'No')
+
+
+# In[53]:
+
+
+total_patients_arthritis['ia1toincim1'] = total_patients_arthritis['ia1toincim1'].astype(float)
+total_patients_arthritis['ia1toincim2'] = total_patients_arthritis['ia1toincim2'].astype(float)
+total_patients_arthritis['ia1toincim3'] = total_patients_arthritis['ia1toincim3'].astype(float)
+total_patients_arthritis['ia1toincim4'] = total_patients_arthritis['ia1toincim4'].astype(float)
+total_patients_arthritis['ia1toincim5'] = total_patients_arthritis['ia1toincim5'].astype(float)
+
+total_patients_arthritis['ia3toincim1'] = total_patients_arthritis['ia3toincim1'].astype(float)
+total_patients_arthritis['ia3toincim2'] = total_patients_arthritis['ia3toincim2'].astype(float)
+total_patients_arthritis['ia3toincim3'] = total_patients_arthritis['ia3toincim3'].astype(float)
+total_patients_arthritis['ia3toincim4'] = total_patients_arthritis['ia3toincim4'].astype(float)
+total_patients_arthritis['ia3toincim5'] = total_patients_arthritis['ia3toincim5'].astype(float)
+
+total_patients_arthritis['ia5toincim1'] = total_patients_arthritis['ia5toincim1'].astype(float)
+total_patients_arthritis['ia5toincim2'] = total_patients_arthritis['ia5toincim2'].astype(float)
+total_patients_arthritis['ia5toincim3'] = total_patients_arthritis['ia5toincim3'].astype(float)
+total_patients_arthritis['ia5toincim4'] = total_patients_arthritis['ia5toincim4'].astype(float)
+total_patients_arthritis['ia5toincim5'] = total_patients_arthritis['ia5toincim5'].astype(float)
+
+total_patients_arthritis['ia7toincim1'] = total_patients_arthritis['ia7toincim1'].astype(float)
+total_patients_arthritis['ia7toincim2'] = total_patients_arthritis['ia7toincim2'].astype(float)
+total_patients_arthritis['ia7toincim3'] = total_patients_arthritis['ia7toincim3'].astype(float)
+total_patients_arthritis['ia7toincim4'] = total_patients_arthritis['ia7toincim4'].astype(float)
+total_patients_arthritis['ia7toincim5'] = total_patients_arthritis['ia7toincim5'].astype(float)
+
+
+# In[54]:
+
+
+total_patients_arthritis['R1avg_income1-5'] = (total_patients_arthritis['ia1toincim1']+total_patients_arthritis['ia1toincim2']+total_patients_arthritis['ia1toincim3']+total_patients_arthritis['ia1toincim4']+total_patients_arthritis['ia1toincim5'])/5
+
+
+# In[55]:
+
+
+total_patients_arthritis['R3avg_income1-5'] = (total_patients_arthritis['ia3toincim1']+total_patients_arthritis['ia3toincim2']+total_patients_arthritis['ia3toincim3']+total_patients_arthritis['ia3toincim4']+total_patients_arthritis['ia3toincim5'])/5
+
+
+# In[56]:
+
+
+total_patients_arthritis['R5avg_income1-5'] = (total_patients_arthritis['ia5toincim1']+total_patients_arthritis['ia5toincim2']+total_patients_arthritis['ia5toincim3']+total_patients_arthritis['ia5toincim4']+total_patients_arthritis['ia5toincim5'])/5
+
+
+# In[57]:
+
+
+total_patients_arthritis['R7avg_income1-5'] = (total_patients_arthritis['ia7toincim1']+total_patients_arthritis['ia7toincim2']+total_patients_arthritis['ia7toincim3']+total_patients_arthritis['ia7toincim4']+total_patients_arthritis['ia7toincim5'])/5
+
+
+# In[58]:
+
+
+total_patients_arthritis['changeR1R3'] = total_patients_arthritis['R1avg_income1-5']-total_patients_arthritis['R3avg_income1-5']
+total_patients_arthritis['changeR1R5'] = total_patients_arthritis['R1avg_income1-5']-total_patients_arthritis['R5avg_income1-5']
+total_patients_arthritis['changeR1R7'] = total_patients_arthritis['R1avg_income1-5']-total_patients_arthritis['R7avg_income1-5']
+total_patients_arthritis['changeR3R5'] = total_patients_arthritis['R3avg_income1-5']-total_patients_arthritis['R5avg_income1-5']
+total_patients_arthritis['changeR3R7'] = total_patients_arthritis['R3avg_income1-5']-total_patients_arthritis['R7avg_income1-5']
+total_patients_arthritis['changeR5R7'] = total_patients_arthritis['R5avg_income1-5']-total_patients_arthritis['R7avg_income1-5']
+
+
+# In[59]:
+
+
+conditions = [(total_patients_arthritis['r1d2intvrage'] == '1 - 65-69') , (total_patients_arthritis['r1d2intvrage'] == '2 - 70-74'),
+    (total_patients_arthritis['r1d2intvrage'] == '3 - 75-79') , (total_patients_arthritis['r1d2intvrage'] == '4 - 80-84'),
+    (total_patients_arthritis['r1d2intvrage'] == '5 - 85-89'), (total_patients_arthritis['r1d2intvrage'] == '6 - 90 +')]
+choices = [1,2,3,4,5,6]
+total_patients_arthritis['Age'] = np.select(conditions, choices)
+
+
+# In[60]:
+
+
+sns.set(color_codes=True)
+
+
+# In[61]:
+
+
+total_patients_arthritis.dropna(subset=['changeR1R3'], inplace=True)
+
+
+# In[68]:
+
+
+#sns.relplot(x="Age", y="R1avg_income1-5", hue="TJR", data=total_patients_arthritis);
+
+
+# In[72]:
+
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R3 <200000]
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R3 >-200000]
+
+
+# In[94]:
+
+
+#sns.regplot(x=total_patients_arthritis["Age"], y=total_patients_arthritis["changeR1R3"])
+total_patients_arthritis['color']= np.where(total_patients_arthritis['TJR'] == 'Yes', "#9b59b6", "#3498db")
+fig = sns.regplot(data=total_patients_arthritis, x="Age", y="changeR1R3", fit_reg=False, scatter_kws={'facecolors':total_patients_arthritis['color']})
+fig.figure.set_size_inches(18.5, 10.5)
+sns.despine()
+
+
+# In[95]:
+
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R5 <200000]
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R5 >-200000]
+
+
+# In[96]:
+
+
+total_patients_arthritis['color']= np.where(total_patients_arthritis['TJR'] == 'Yes', "#9b59b6", "#3498db")
+fig = sns.regplot(data=total_patients_arthritis, x="Age", y="changeR1R5", fit_reg=False, scatter_kws={'facecolors':total_patients_arthritis['color']})
+fig.figure.set_size_inches(18.5, 10.5)
+sns.despine()
+
+
+# In[102]:
+
+
+sp.stats.wilcoxon(total_patients_arthritis['R1avg_income1-5'],total_patients_arthritis['R3avg_income1-5'], zero_method='wilcox', correction=False)
+
+
+# In[103]:
+
+
+sp.stats.wilcoxon(total_patients_arthritis['changeR1R3'], zero_method='wilcox', correction=False)
+
+
+# In[105]:
+
+
+total_patients_arthritis['changeR1R3'].median()
+
