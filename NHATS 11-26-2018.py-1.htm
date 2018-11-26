@@ -1,0 +1,305 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[25]:
+
+
+import pandas as pd 
+import seaborn as sns 
+import numpy as np
+import scipy as sp
+
+
+# In[26]:
+
+
+# Importing the Datasets 
+
+df1 = pd.read_csv('Round1.csv')
+df2 = pd.read_csv('Round2.csv')
+df3 = pd.read_csv('Round3.csv')
+df4 = pd.read_csv('Round4.csv')
+df5 = pd.read_csv('Round5.csv')
+df6 = pd.read_csv('Round6.csv')
+df7 = pd.read_csv('Round7.csv')
+
+
+# In[27]:
+
+
+# Merging the Datasets 
+
+mergedset1 = pd.merge(df1, df2, on='spid',how='left')
+mergedset2 = pd.merge(mergedset1,df3,on='spid',how='left')
+mergedset3 = pd.merge(mergedset2,df4,on='spid',how='left')
+mergedset4 = pd.merge(mergedset3,df5,on='spid',how='left')
+mergedset5 = pd.merge(mergedset4,df6,on='spid',how='left')
+mergedset_final = pd.merge(mergedset5,df7,on='spid',how='left')
+
+
+# In[28]:
+
+
+# Excluding Patients Without Arthritis 
+
+total_patients_arthritis = mergedset_final[mergedset_final.hc1disescn4 == '1 YES']
+
+
+# In[29]:
+
+
+# Converting the Age Variable from String to Int 
+
+conditions = [(total_patients_arthritis['r1d2intvrage'] == '1 - 65-69') , (total_patients_arthritis['r1d2intvrage'] == '2 - 70-74'),
+    (total_patients_arthritis['r1d2intvrage'] == '3 - 75-79') , (total_patients_arthritis['r1d2intvrage'] == '4 - 80-84'),
+    (total_patients_arthritis['r1d2intvrage'] == '5 - 85-89'), (total_patients_arthritis['r1d2intvrage'] == '6 - 90 +')]
+choices = [1,2,3,4,5,6]
+total_patients_arthritis['Age'] = np.select(conditions, choices)
+
+
+# In[30]:
+
+
+# Creating a Variable for Joint Replacement (Hip and/or Knee) Status
+
+total_patients_arthritis['THR'] = np.where(total_patients_arthritis['hc1hipsurg'] == '1 YES', 1, 0)
+total_patients_arthritis['TKR'] = np.where(total_patients_arthritis['hc1kneesurg'] == '1 YES', 1, 0) 
+total_patients_arthritis['TJR'] = np.where(total_patients_arthritis['THR']+total_patients_arthritis['TKR'] >= 1, 'Yes', 'No')
+
+
+# In[32]:
+
+
+# Removing the Missing Imputed Income Values Round 1 and Round 3 from the Set
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia1toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia1toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia1toincim1 != '.']
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia3toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia3toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia3toincim1 != '.']
+
+
+# In[33]:
+
+
+# Converting the Imputed Income Values Round 1 - Round 3 from pd.Series to float
+
+total_patients_arthritis['ia1toincim1'] = total_patients_arthritis['ia1toincim1'].astype(float)
+total_patients_arthritis['ia1toincim2'] = total_patients_arthritis['ia1toincim2'].astype(float)
+total_patients_arthritis['ia1toincim3'] = total_patients_arthritis['ia1toincim3'].astype(float)
+total_patients_arthritis['ia1toincim4'] = total_patients_arthritis['ia1toincim4'].astype(float)
+total_patients_arthritis['ia1toincim5'] = total_patients_arthritis['ia1toincim5'].astype(float)
+
+total_patients_arthritis['ia3toincim1'] = total_patients_arthritis['ia3toincim1'].astype(float)
+total_patients_arthritis['ia3toincim2'] = total_patients_arthritis['ia3toincim2'].astype(float)
+total_patients_arthritis['ia3toincim3'] = total_patients_arthritis['ia3toincim3'].astype(float)
+total_patients_arthritis['ia3toincim4'] = total_patients_arthritis['ia3toincim4'].astype(float)
+total_patients_arthritis['ia3toincim5'] = total_patients_arthritis['ia3toincim5'].astype(float)
+
+
+# In[34]:
+
+
+# Computing the Average Imputed Income for Round 1
+
+total_patients_arthritis['R1avg_income1-5'] = (total_patients_arthritis['ia1toincim1']+total_patients_arthritis['ia1toincim2']+total_patients_arthritis['ia1toincim3']+total_patients_arthritis['ia1toincim4']+total_patients_arthritis['ia1toincim5'])/5
+
+
+# In[35]:
+
+
+# Computing the Average Imputed Income for Round 3 
+
+total_patients_arthritis['R3avg_income1-5'] = (total_patients_arthritis['ia3toincim1']+total_patients_arthritis['ia3toincim2']+total_patients_arthritis['ia3toincim3']+total_patients_arthritis['ia3toincim4']+total_patients_arthritis['ia3toincim5'])/5
+
+
+# In[36]:
+
+
+# Computing the Change in Income Between Round 1 and Round 3  
+
+total_patients_arthritis['changeR1R3'] = total_patients_arthritis['R1avg_income1-5']-total_patients_arthritis['R3avg_income1-5']
+
+
+# In[38]:
+
+
+# Excluding the top and bottom 1% of change in income values 
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R3 <200000]
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R3 >-200000]
+
+
+# In[39]:
+
+
+# Separating Individuals with TJR from those Without 
+
+total_patients_arthritis_TJR = total_patients_arthritis[total_patients_arthritis.TJR == 'Yes']
+total_patients_arthritis_NoTJR = total_patients_arthritis[total_patients_arthritis.TJR == 'No']
+
+
+# In[41]:
+
+
+# Starting the Analysis Phase 
+
+
+# In[47]:
+
+
+# Wilcoxon Signed Rank Test - Is changeR1R3 for TJR significantly different from 0? 
+sp.stats.wilcoxon(total_patients_arthritis_TJR['changeR1R3'], zero_method='wilcox', correction=False)
+
+
+# In[48]:
+
+
+# Wilcoxon Signed Rank Test - Is changeR1R3 for NoTJR significantly different from 0? 
+sp.stats.wilcoxon(total_patients_arthritis_NoTJR['changeR1R3'], zero_method='wilcox', correction=False)
+
+
+# In[57]:
+
+
+# Separating the Patients by Age and TJR Status 
+# Those Age 65-69
+total_patients_arthritis_Age6569TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 1]
+total_patients_arthritis_Age6569NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 1]
+# Those Age 70-74
+total_patients_arthritis_Age7074TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 2]
+total_patients_arthritis_Age7074NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 2]
+# Those Age 75-79
+total_patients_arthritis_Age7579TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 3]
+total_patients_arthritis_Age7579NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 3]
+# Those Age 80-84
+total_patients_arthritis_Age8084TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 4]
+total_patients_arthritis_Age8084NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 4]
+# Those Age 85-89
+total_patients_arthritis_Age8589TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 5]
+total_patients_arthritis_Age8589NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 5]
+# Those Age 90 + 
+total_patients_arthritis_Age90TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 6]
+total_patients_arthritis_Age90NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 6]
+
+
+# In[98]:
+
+
+# Wilcoxon Signed Rank Test - Is changeR1R3 for TJR significantly different from 0? 
+sp.stats.wilcoxon(total_patients_arthritis_Age90NoTJR['changeR1R3'], zero_method='wilcox', correction=False)
+
+
+# In[55]:
+
+
+# Wilcoxon Signed Rank Test - Is changeR1R3 for TJR significantly different from 0? 
+sp.stats.wilcoxon(total_patients_arthritis_Age6569TJR['changeR1R3'], zero_method='wilcox', correction=False)
+
+
+# In[56]:
+
+
+# Wilcoxon Signed Rank Test - Is changeR1R3 for TJR significantly different from 0? 
+sp.stats.wilcoxon(total_patients_arthritis_Age6569NoTJR['changeR1R3'], zero_method='wilcox', correction=False)
+
+
+# In[99]:
+
+
+# Removing the Missing Imputed Income Values Round 1 and Round 5 from the Set
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia5toincim1 != '-1 Inapplicable']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia5toincim1 != '-9 Missing']
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.ia5toincim1 != '.']
+
+# Converting the Imputed Income Values Round 5 from pd.Series to float
+
+total_patients_arthritis['ia5toincim1'] = total_patients_arthritis['ia5toincim1'].astype(float)
+total_patients_arthritis['ia5toincim2'] = total_patients_arthritis['ia5toincim2'].astype(float)
+total_patients_arthritis['ia5toincim3'] = total_patients_arthritis['ia5toincim3'].astype(float)
+total_patients_arthritis['ia5toincim4'] = total_patients_arthritis['ia5toincim4'].astype(float)
+total_patients_arthritis['ia5toincim5'] = total_patients_arthritis['ia5toincim5'].astype(float)
+
+# Computing the Average Imputed Income for Round 5
+
+total_patients_arthritis['R5avg_income1-5'] = (total_patients_arthritis['ia5toincim1']+total_patients_arthritis['ia5toincim2']+total_patients_arthritis['ia5toincim3']+total_patients_arthritis['ia5toincim4']+total_patients_arthritis['ia5toincim5'])/5
+
+# Computing the Change in Income Between Round 1 and Round 5  
+
+total_patients_arthritis['changeR1R5'] = total_patients_arthritis['R1avg_income1-5']-total_patients_arthritis['R5avg_income1-5']
+
+# Excluding the top and bottom 1% of change in income values 
+
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R5 <200000]
+total_patients_arthritis = total_patients_arthritis[total_patients_arthritis.changeR1R5 >-200000]
+
+# Separating Individuals with TJR from those Without 
+
+total_patients_arthritis_TJR = total_patients_arthritis[total_patients_arthritis.TJR == 'Yes']
+total_patients_arthritis_NoTJR = total_patients_arthritis[total_patients_arthritis.TJR == 'No']
+
+# Separating the Patients by Age and TJR Status 
+# Those Age 65-69
+total_patients_arthritis_Age6569TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 1]
+total_patients_arthritis_Age6569NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 1]
+# Those Age 70-74
+total_patients_arthritis_Age7074TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 2]
+total_patients_arthritis_Age7074NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 2]
+# Those Age 75-79
+total_patients_arthritis_Age7579TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 3]
+total_patients_arthritis_Age7579NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 3]
+# Those Age 80-84
+total_patients_arthritis_Age8084TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 4]
+total_patients_arthritis_Age8084NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 4]
+# Those Age 85-89
+total_patients_arthritis_Age8589TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 5]
+total_patients_arthritis_Age8589NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 5]
+# Those Age 90 + 
+total_patients_arthritis_Age90TJR = total_patients_arthritis_TJR[total_patients_arthritis_TJR.Age == 6]
+total_patients_arthritis_Age90NoTJR = total_patients_arthritis_NoTJR[total_patients_arthritis_NoTJR.Age == 6]
+
+
+# In[145]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
